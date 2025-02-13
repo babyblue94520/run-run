@@ -82,28 +82,32 @@ export class AppComponent {
     this.init();
   }
 
-  public clear(){
+  public clear() {
     this.form.combination = '';
     this.result = [];
   }
 
+  public enter() {
+    var combination = this.getNumberCombination();
+    this.form.combination = combination.join(' ')
+  }
+
   public search() {
-    var ss = this.form.combination.split(' ');
-    this.result = [];
-    if (ss.length == 0) return;
-    var combination: number[] = [];
-    for (var v of ss) {
-      combination.push(Number(v));
-    }
-    combination.sort();
+    var combination = this.getNumberCombination();
     this.result = [];
     var entries = Object.entries(combination);
     for (var record of this.combinations) {
       var count = 0;
+      var matchSource = [];
+      for (let c of record.combination) {
+        matchSource.push(c.cd);
+      }
+
       for (const [key, value] of entries) {
-        for (let c of record.combination) {
-          if (value == c.cd) {
+        for (let i in matchSource) {
+          if (value == matchSource[i]) {
             count++;
+            matchSource[i] = undefined;
             break;
           }
         }
@@ -113,6 +117,17 @@ export class AppComponent {
       }
     }
     this.selected.setValue(1);
+  }
+
+  public getNumberCombination() {
+    var ss = this.form.combination.split(/\s+/);
+    var combination: number[] = [];
+    for (var v of ss) {
+      if (v == '' || isNaN(<any>v)) continue;
+      combination.push(Number(v));
+    }
+    combination.sort();
+    return combination;
   }
 
   init() {
