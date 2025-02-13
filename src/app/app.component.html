@@ -1,11 +1,30 @@
-<mat-form-field class="example-form-field">
+<mat-form-field>
+  <mat-label>第一次風圈施放時間(S)</mat-label>
+  <input
+    matInput
+    type="number"
+    [(ngModel)]="startTime"
+    (ngModelChange)="init()"
+  />
+</mat-form-field>
+<mat-form-field>
+  <mat-label>最後到站時間(S)</mat-label>
+  <input
+    matInput
+    type="number"
+    [(ngModel)]="endTime"
+    (ngModelChange)="init()"
+  />
+  <mat-hint align="start">{{toTime(endTime)}} </mat-hint>
+</mat-form-field>
+<br>
+<mat-form-field>
   <mat-label>組合</mat-label>
   <input
     matInput
     type="text"
     [(ngModel)]="form.combination"
-    (keyup.enter)="search()"
-    (blur)="search()"
+    (ngModelChange)="search()"
     [placeholder]="'Ex. 0 10 20 30 35'"
   /> 
   <mat-hint align="start"><strong>輸入冷卻時間的組合</strong> </mat-hint>
@@ -14,7 +33,7 @@
     matSuffix
     mat-icon-button
     aria-label="Clear"
-    (click)="form.combination = ''"
+    (click)="clear()"
   >
     <mat-icon>close</mat-icon>
   </button>
@@ -31,9 +50,9 @@
       @for (record of combinations; track record.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header  class="panel-header">
-          <mat-panel-title> {{ record.totalTime }}s</mat-panel-title>
+          <mat-panel-title> 風圈時間：{{ record.totalTime }}s</mat-panel-title>
           <mat-panel-description class="panel-description">
-            <div>{{ record.id }} </div>
+            <div>組合：{{ record.id }} </div>
             <div>詳細 </div>
           </mat-panel-description>
         </mat-expansion-panel-header>

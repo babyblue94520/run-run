@@ -49,6 +49,19 @@ interface SkillTimeRange {
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
+  unit = 5;
+  cd = 30;
+  minCD = 0;
+  maxCD = 35;
+  keep = 5;
+  startTime = 4;
+  endTime = 101;
+
+  stations = [
+    { start: 19, end: 34 },
+    { start: 61, end: 76 },
+  ];
+
   selected = new FormControl(0);
 
   form: Form = { combination: '' };
@@ -58,27 +71,26 @@ export class AppComponent {
   cds: number[] = [];
   skillTimeRanges: SkillTimeRange[] = [];
   combinations: Result[] = [];
-  map = new Map();
-
-  unit = 5;
-  cd = 30;
-  minCD = 0;
-  maxCD = 35;
-  keep = 5;
-  startTime = 5;
-  endTime = 102;
-
-  stations = [
-    { start: 19, end: 34 },
-    { start: 61, end: 76 },
-  ];
 
   constructor() {
-    this.initCD();
+    this.cds = [];
+
+    for (var i = this.minCD; i <= this.maxCD; i += this.unit) {
+      this.cds.push(i);
+    }
+
+    this.init();
+  }
+
+  public clear(){
+    this.form.combination = '';
+    this.result = [];
   }
 
   public search() {
     var ss = this.form.combination.split(' ');
+    this.result = [];
+    if (ss.length == 0) return;
     var combination: number[] = [];
     for (var v of ss) {
       combination.push(Number(v));
@@ -89,7 +101,7 @@ export class AppComponent {
     for (var record of this.combinations) {
       var count = 0;
       for (const [key, value] of entries) {
-        for(let c of record.combination){
+        for (let c of record.combination) {
           if (value == c.cd) {
             count++;
             break;
@@ -103,17 +115,15 @@ export class AppComponent {
     this.selected.setValue(1);
   }
 
-  initCD() {
-    this.cds = [];
+  init() {
+    this.startTime = Number(this.startTime);
+    this.result = [];
 
-    for (var i = this.minCD; i <= this.maxCD; i += this.unit) {
-      this.cds.push(i);
-    }
+    let array = (this.skillTimeRanges = []);
 
-    this.skillTimeRanges = [];
     for (var r of this.cds) {
       var data: SkillTimeRange = { cd: r, times: [] };
-      this.skillTimeRanges.push(data);
+      array.push(data);
       var rcd = (this.cd * (100 - r)) / 100;
       var t = this.startTime;
       while (t < this.endTime) {
@@ -128,14 +138,7 @@ export class AppComponent {
     );
 
     this.combinations = this.calculateTimes(combinations);
-  }
 
-  public getDescription(data: Result) {
-    var result = '';
-    for (var a of data.combination) {
-      result += a.cd + ', ';
-    }
-    return result;
   }
 
   public getContent(result: Result) {
@@ -222,7 +225,7 @@ export class AppComponent {
     }
 
     for (var v of record.combination) {
-      labels.push(`寵物冷卻 ${v.cd < 10 ? '  ' : ''}-${v.cd}%`);
+      labels.push(`${v.cd < 10 ? '  ' : ''}-${v.cd}%`);
       for (var i = 0; i < 7; i++) {
         var dataset = datasets[i];
         var t = v.times[i];
@@ -282,7 +285,7 @@ export class AppComponent {
 
       var id = '';
       for (var a of combination) {
-        id += a.cd + ', ';
+        id += a.cd + ' ';
       }
       var d = {
         id: id,
@@ -301,7 +304,7 @@ export class AppComponent {
   public getCombinationsWithRepetition<T>(array: any[], count: number): T[][] {
     function combine(temp: any[], start: number) {
       if (temp.length === count) {
-        result.push([...temp]);
+        result.push(JSON.parse(JSON.stringify(temp)));
         return;
       }
       for (let i = start; i < array.length; i++) {
@@ -316,7 +319,7 @@ export class AppComponent {
     return result;
   }
 
-  private toTime(v) {
+  public toTime(v) {
     v = Number(v);
     var m = Math.floor(v / 60);
     var s = v % 60;
