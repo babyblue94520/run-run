@@ -127,7 +127,7 @@ export class AppComponent {
       var rcd = (this.cd * (100 - r)) / 100;
       var t = this.startTime;
       while (t < this.endTime) {
-        data.times.push({ start: t, end: t + this.unit });
+        data.times.push({ start: t, end: t + this.keep });
         t += rcd;
       }
     }
