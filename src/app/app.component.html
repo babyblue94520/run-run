@@ -15,9 +15,9 @@
     [(ngModel)]="endTime"
     (ngModelChange)="init()"
   />
-  <mat-hint align="start">{{toTime(endTime)}} </mat-hint>
+  <mat-hint align="start">{{ toTime(endTime) }} </mat-hint>
 </mat-form-field>
-<br>
+<br />
 <mat-form-field>
   <mat-label>組合</mat-label>
   <input
@@ -26,15 +26,10 @@
     [(ngModel)]="form.combination"
     (ngModelChange)="search()"
     [placeholder]="'Ex. 0 10 20 30 35'"
-  /> 
+  />
   <mat-hint align="start"><strong>輸入冷卻時間的組合</strong> </mat-hint>
   @if (form.combination) {
-  <button
-    matSuffix
-    mat-icon-button
-    aria-label="Clear"
-    (click)="clear()"
-  >
+  <button matSuffix mat-icon-button aria-label="Clear" (click)="clear()">
     <mat-icon>close</mat-icon>
   </button>
   }
@@ -49,11 +44,11 @@
     <mat-accordion>
       @for (record of combinations; track record.id) {
       <mat-expansion-panel>
-        <mat-expansion-panel-header  class="panel-header">
+        <mat-expansion-panel-header class="panel-header">
           <mat-panel-title> 風圈時間：{{ record.totalTime }}s</mat-panel-title>
           <mat-panel-description class="panel-description">
-            <div>組合：{{ record.id }} </div>
-            <div>詳細 </div>
+            <div>組合：{{ record.id }}</div>
+            <div>詳細</div>
           </mat-panel-description>
         </mat-expansion-panel-header>
         <ng-template matExpansionPanelContent>
@@ -71,10 +66,10 @@
       @for (record of result; track record.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header class="panel-header">
-          <mat-panel-title> {{ record.totalTime }}s</mat-panel-title>
+          <mat-panel-title> 風圈時間：{{ record.totalTime }}s</mat-panel-title>
           <mat-panel-description class="panel-description">
-            <div>{{ record.id }} </div>
-            <div>詳細 </div>
+            <div>組合：{{ record.id }}</div>
+            <div>詳細</div>
           </mat-panel-description>
         </mat-expansion-panel-header>
         <ng-template matExpansionPanelContent>
