@@ -1,11 +1,6 @@
 <mat-form-field>
   <mat-label>風圈持續時間(S)</mat-label>
-  <input
-    matInput
-    type="number"
-    [(ngModel)]="keep"
-    (ngModelChange)="init()"
-  />
+  <input matInput type="number" [(ngModel)]="keep" (ngModelChange)="init()" />
 </mat-form-field>
 <mat-form-field>
   <mat-label>第一次風圈施放時間(S)</mat-label>
@@ -34,6 +29,7 @@
     type="text"
     [(ngModel)]="form.combination"
     (ngModelChange)="search()"
+    (keyup.enter)="enter()"
     [placeholder]="'Ex. 0 10 20 30 35'"
   />
   <mat-hint align="start"><strong>輸入冷卻時間的組合</strong> </mat-hint>
