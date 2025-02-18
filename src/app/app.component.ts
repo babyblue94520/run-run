@@ -20,6 +20,7 @@ interface Result {
   combination: SkillTimeRange[];
   timeRanges: Range[];
   totalTime: number;
+  effects?: Range[];
   chart?: Chart;
 }
 
@@ -54,7 +55,7 @@ export class AppComponent {
   minCD = 0;
   maxCD = 35;
   keep = 5;
-  startTime = 4;
+  startTime = 4.8;
   endTime = 101;
 
   stations = [
@@ -82,7 +83,7 @@ export class AppComponent {
     this.init();
   }
 
-  public clear(){
+  public clear() {
     this.form.combination = '';
     this.result = [];
   }
@@ -125,9 +126,13 @@ export class AppComponent {
       var data: SkillTimeRange = { cd: r, times: [] };
       array.push(data);
       var rcd = (this.cd * (100 - r)) / 100;
+      rcd = Math.round(rcd * 100) / 100;
       var t = this.startTime;
       while (t < this.endTime) {
-        data.times.push({ start: t, end: t + this.keep });
+        data.times.push({
+          start: t,
+          end: Math.min(t + this.keep, this.endTime),
+        });
         t += rcd;
       }
     }
@@ -138,15 +143,16 @@ export class AppComponent {
     );
 
     this.combinations = this.calculateTimes(combinations);
-
   }
 
   public getContent(result: Result) {
     return JSON.stringify(result);
   }
 
-  initChart(canvas: any, record: Result) {
+  initChart(chart: HTMLDivElement, record: Result) {
     if (!record.chart) {
+      var canvas = document.createElement('canvas');
+      chart.appendChild(canvas);
       var data = this.toChartData(record);
       record.chart = new Chart<'bar'>(canvas, {
         type: 'bar',
@@ -161,8 +167,8 @@ export class AppComponent {
               // stacked: true,
               ticks: {
                 minRotation: 0,
-                maxRotation: this.endTime,
-                stepSize: 2,
+                maxRotation: this.endTime + 5,
+                stepSize: 5,
                 callback: this.toTime,
               },
             },
@@ -205,6 +211,7 @@ export class AppComponent {
         data: data,
         backgroundColor: [
           'rgba(165, 182, 200, 0.6)',
+          'rgba(0, 255, 72, 0.6)',
           'rgba(0, 123, 255, 0.6)',
           'rgba(0, 123, 255, 0.6)',
           'rgba(0, 123, 255, 0.6)',
@@ -213,6 +220,7 @@ export class AppComponent {
         ],
         borderColor: [
           'rgba(165, 182, 200, 0.6)',
+          'rgba(0, 255, 72, 0.6)',
           'rgba(0, 123, 255, 0.6)',
           'rgba(0, 123, 255, 0.6)',
           'rgba(0, 123, 255, 0.6)',
@@ -224,7 +232,19 @@ export class AppComponent {
       });
     }
 
-    for (var v of record.combination) {
+
+    labels.push(`有效時間`);
+    for (var i = 0; i < 7; i++) {
+      var dataset = datasets[i];
+      var t = record.effects[i];
+      if (t) {
+        dataset.data.push([t.start, t.end]);
+      } else {
+        dataset.data.push([0, 0]);
+      }
+    }
+
+    for (let v of record.combination) {
       labels.push(`${v.cd < 10 ? '  ' : ''}-${v.cd}%`);
       for (var i = 0; i < 7; i++) {
         var dataset = datasets[i];
@@ -253,12 +273,8 @@ export class AppComponent {
           var merge = false;
           for (var t of timeRanges) {
             if (range.start > t.end || range.end < t.start) continue;
-            if (range.start < t.start) {
-              t.start = range.start;
-            }
-            if (range.end > t.end) {
-              t.end = range.end;
-            }
+            t.start = Math.min(range.start, t.start);
+            t.end = Math.max(range.end, t.end);
             merge = true;
             break;
           }
@@ -271,18 +287,31 @@ export class AppComponent {
         a.start > b.start ? 1 : a.start == b.start ? 0 : -1
       );
       var totalTime = 0;
+      var effects = [];
       for (let range of timeRanges) {
         var start = range.start;
         var end = range.end;
         var second = end - start;
+        var conflictStation = undefined;
         for (let station of this.stations) {
           if (station.start > end || station.end < start) continue;
+          conflictStation = station;
           second -= Math.min(station.end, end) - Math.max(station.start, start);
         }
-
         totalTime += second;
+        if (conflictStation) {
+          if (conflictStation.end < range.end) {
+            effects.push({ start: conflictStation.end, end: range.end });
+          }
+          if (conflictStation.start > range.start) {
+            effects.push({ start: range.start, end: conflictStation.start });
+          }
+        } else {
+          effects.push(range);
+        }
       }
 
+      totalTime = Math.round(totalTime * 100) / 100;
       var id = '';
       for (var a of combination) {
         id += a.cd + ' ';
@@ -292,6 +321,7 @@ export class AppComponent {
         combination: [...combination],
         timeRanges: [...timeRanges],
         totalTime,
+        effects,
       };
       result.push(d);
     }
@@ -322,7 +352,7 @@ export class AppComponent {
   public toTime(v) {
     v = Number(v);
     var m = Math.floor(v / 60);
-    var s = v % 60;
+    var s = (v * 100 - m * 60 * 100) / 100;
     if (m > 0) {
       if (s < 10) {
         return `${m}:0${s}`;

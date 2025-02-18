@@ -61,8 +61,7 @@
           </mat-panel-description>
         </mat-expansion-panel-header>
         <ng-template matExpansionPanelContent>
-          <div class="chart">
-            <canvas #canvas [id]="initChart(canvas, record)"></canvas>
+          <div class="chart" #chart [attr.init]="initChart(chart, record)">
           </div>
         </ng-template>
       </mat-expansion-panel>
@@ -82,8 +81,7 @@
           </mat-panel-description>
         </mat-expansion-panel-header>
         <ng-template matExpansionPanelContent>
-          <div class="chart">
-            <canvas #canvas [id]="initChart(canvas, record)"></canvas>
+          <div class="chart" #chart [attr.init]="initChart(chart, record)">
           </div>
         </ng-template>
       </mat-expansion-panel>
