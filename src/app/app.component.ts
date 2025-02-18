@@ -57,6 +57,7 @@ export class AppComponent {
   keep = 5;
   startTime = 4.8;
   endTime = 101;
+  stepCount = 8;
 
   stations = [
     { start: 19, end: 34 },
@@ -90,7 +91,7 @@ export class AppComponent {
 
   public enter() {
     var combination = this.getNumberCombination();
-    this.form.combination = combination.join(' ')
+    this.form.combination = combination.join(' ');
   }
 
   public search() {
@@ -120,7 +121,10 @@ export class AppComponent {
     this.selected.setValue(1);
   }
 
-  public  getNumberCombination() {
+  /**
+   * 取得數字組合陣列
+   */
+  public getNumberCombination() {
     var ss = this.form.combination.split(/\s+/);
     var combination: number[] = [];
     for (var v of ss) {
@@ -160,10 +164,9 @@ export class AppComponent {
     this.combinations = this.calculateTimes(combinations);
   }
 
-  public getContent(result: Result) {
-    return JSON.stringify(result);
-  }
-
+  /**
+   * 初始化 Chart
+   */
   initChart(chart: HTMLDivElement, record: Result) {
     if (!record.chart) {
       var canvas = document.createElement('canvas');
@@ -195,6 +198,9 @@ export class AppComponent {
             },
           },
           plugins: {
+            legend: {
+              display: false,
+            },
             datalabels: {
               color: 'black', // 設置數據標籤的顏色
               align: 'top', // 設置數據標籤的位置（上方）
@@ -214,15 +220,18 @@ export class AppComponent {
     return record.id;
   }
 
+  /**
+   * 轉換為 Chart Data
+   */
   toChartData(record: Result) {
     var labels = [`站點時間`];
     var datasets: any[] = [];
 
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < this.stepCount; i++) {
       var t = this.stations[i];
       var data = [t ? [t.start, t.end] : [0, 0]];
       datasets.push({
-        label: `第 ${i + 1} 次`,
+        label: '',
         data: data,
         backgroundColor: [
           'rgba(165, 182, 200, 0.6)',
@@ -247,9 +256,8 @@ export class AppComponent {
       });
     }
 
-
     labels.push(`有效時間`);
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < this.stepCount; i++) {
       var dataset = datasets[i];
       var t = record.effects[i];
       if (t) {
@@ -261,7 +269,7 @@ export class AppComponent {
 
     for (let v of record.combination) {
       labels.push(`${v.cd < 10 ? '  ' : ''}-${v.cd}%`);
-      for (var i = 0; i < 7; i++) {
+      for (var i = 0; i < this.stepCount; i++) {
         var dataset = datasets[i];
         var t = v.times[i];
         if (t) {
@@ -278,6 +286,9 @@ export class AppComponent {
     };
   }
 
+  /**
+   * 計算所有組合的時間
+   */
   public calculateTimes(combinations: SkillTimeRange[][]) {
     var result: Result[] = [];
 
@@ -346,6 +357,10 @@ export class AppComponent {
     return result;
   }
 
+  /**
+   * 產稱所有排列組合
+   * N 取 C 可重複
+   */
   public getCombinationsWithRepetition<T>(array: any[], count: number): T[][] {
     function combine(temp: any[], start: number) {
       if (temp.length === count) {
@@ -364,6 +379,9 @@ export class AppComponent {
     return result;
   }
 
+  /**
+   * 轉換成時間格式  MM:ss
+   */
   public toTime(v) {
     v = Number(v);
     var m = Math.floor(v / 60);
