@@ -1,44 +1,79 @@
-<mat-form-field>
-  <mat-label>風圈持續時間(S)</mat-label>
-  <input matInput type="number" [(ngModel)]="keep" (ngModelChange)="init()" />
-</mat-form-field>
-<mat-form-field>
-  <mat-label>第一次風圈施放時間(S)</mat-label>
-  <input
-    matInput
-    type="number"
-    [(ngModel)]="startTime"
-    (ngModelChange)="init()"
-  />
-</mat-form-field>
-<mat-form-field>
-  <mat-label>最後到站時間(S)</mat-label>
-  <input
-    matInput
-    type="number"
-    [(ngModel)]="endTime"
-    (ngModelChange)="init()"
-  />
-  <mat-hint align="start">{{ toTime(endTime) }} </mat-hint>
-</mat-form-field>
-<br />
-<mat-form-field>
-  <mat-label>組合</mat-label>
-  <input
-    matInput
-    type="text"
-    [(ngModel)]="form.combination"
-    (ngModelChange)="search()"
-    (keyup.enter)="enter()"
-    [placeholder]="'Ex. 0 10 20 30 35'"
-  />
-  <mat-hint align="start"><strong>輸入冷卻時間的組合</strong> </mat-hint>
-  @if (form.combination) {
-  <button matSuffix mat-icon-button aria-label="Clear" (click)="clear()">
-    <mat-icon>close</mat-icon>
-  </button>
-  }
-</mat-form-field>
+<mat-accordion multi>
+  <mat-expansion-panel>
+    <mat-expansion-panel-header>
+      <mat-panel-title> 設定 </mat-panel-title>
+    </mat-expansion-panel-header>
+    <mat-form-field>
+      <mat-label>風圈持續時間(S)</mat-label>
+      <input matInput type="number" [(ngModel)]="keep" (ngModelChange)="init()" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>第一次風圈施放時間(S)</mat-label>
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="startTime"
+        (ngModelChange)="init()"
+      />
+    </mat-form-field>
+    <br>
+    <mat-form-field>
+      <mat-label>第一站時間(S)</mat-label>
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="stations[0].start"
+        (ngModelChange)="stationChange()"
+      />
+      <mat-hint align="start">{{ toTime(stations[0].start) }} </mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>第二站時間(S)</mat-label>
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="stations[1].start"
+        (ngModelChange)="stationChange()"
+      />
+      <mat-hint align="start">{{ toTime(stations[1].start) }} </mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>第三站時間(S)</mat-label>
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="endTime"
+        (ngModelChange)="init()"
+      />
+      <mat-hint align="start">{{ toTime(endTime) }} </mat-hint>
+    </mat-form-field>
+  </mat-expansion-panel>
+  <mat-expansion-panel >
+    <mat-expansion-panel-header>
+      <mat-panel-title> 查詢條件 </mat-panel-title>
+      <mat-panel-description>
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <mat-form-field>
+      <mat-label>組合</mat-label>
+      <input
+        matInput
+        type="text"
+        [(ngModel)]="form.combination"
+        (ngModelChange)="search()"
+        (keyup.enter)="enter()"
+        [placeholder]="'Ex. 0 10 20 30 35'"
+      />
+      <mat-hint align="start"><strong>輸入冷卻時間的組合</strong> </mat-hint>
+      @if (form.combination) {
+      <button matSuffix mat-icon-button aria-label="Clear" (click)="clear()">
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+    </mat-form-field>
+  </mat-expansion-panel>
+</mat-accordion>
+
 <mat-tab-group
   mat-stretch-tabs="false"
   mat-align-tabs="start"
@@ -46,7 +81,7 @@
   (selectedIndexChange)="selected.setValue($event)"
 >
   <mat-tab label="全部">
-    <mat-accordion>
+    <mat-accordion multi>
       @for (record of combinations; track record.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header class="panel-header">
@@ -66,7 +101,7 @@
   </mat-tab>
   <mat-tab label="查詢結果">
     @if (result.length==0) { 沒有符合組合 } @else {
-    <mat-accordion>
+    <mat-accordion multi>
       @for (record of result; track record.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header class="panel-header">

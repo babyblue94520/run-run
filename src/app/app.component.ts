@@ -94,6 +94,13 @@ export class AppComponent {
     this.form.combination = combination.join(' ');
   }
 
+  public stationChange() {
+    for (var station of this.stations) {
+      station.end = station.start + 15;
+    }
+    this.init();
+  }
+
   public search() {
     var combination = this.getNumberCombination();
     this.result = [];
