@@ -81,23 +81,25 @@
   (selectedIndexChange)="selected.setValue($event)"
 >
   <mat-tab label="全部">
-    <mat-accordion multi>
-      @for (record of combinations; track record.id) {
-      <mat-expansion-panel>
-        <mat-expansion-panel-header class="panel-header">
-          <mat-panel-title> 風圈時間：{{ record.totalTime }}s</mat-panel-title>
-          <mat-panel-description class="panel-description">
-            <div>組合：{{ record.id }}</div>
-            <div>詳細</div>
-          </mat-panel-description>
-        </mat-expansion-panel-header>
-        <ng-template matExpansionPanelContent>
-          <div class="chart" #chart [attr.init]="initChart(chart, record)">
-          </div>
-        </ng-template>
-      </mat-expansion-panel>
-      }
-    </mat-accordion>
+    <div class="block">
+      <mat-accordion multi>
+        @for (record of combinations; track record.id) {
+        <mat-expansion-panel>
+          <mat-expansion-panel-header class="panel-header">
+            <mat-panel-title> 風圈時間：{{ record.totalTime }}s</mat-panel-title>
+            <mat-panel-description class="panel-description">
+              <div>組合：{{ record.id }}</div>
+              <div>詳細</div>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+          <ng-template matExpansionPanelContent>
+            <div class="chart" #chart [attr.init]="initChart(chart, record)">
+            </div>
+          </ng-template>
+        </mat-expansion-panel>
+        }
+      </mat-accordion>
+    </div>
   </mat-tab>
   <mat-tab label="查詢結果">
     @if (result.length==0) { 沒有符合組合 } @else {
