@@ -1,5 +1,14 @@
+import {
+  CdkVirtualScrollViewport,
+  ScrollingModule,
+} from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  QueryList,
+  ViewChildren,
+} from '@angular/core';
 import { FormControl, FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -9,6 +18,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTabsModule } from '@angular/material/tabs';
 import Chart from 'chart.js/auto';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Delay } from '../ts/delay';
 
 interface Range {
   start: number;
@@ -30,6 +40,7 @@ interface Form {
 
 interface SkillTimeRange {
   cd: number;
+  startTime: number;
   times: Range[];
 }
 
@@ -45,17 +56,18 @@ interface SkillTimeRange {
     MatInputModule,
     MatButtonModule,
     MatTabsModule,
+    ScrollingModule,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   unit = 5;
   cd = 30;
   minCD = 0;
   maxCD = 35;
   keep = 5;
-  startTime = 4.8;
+  startTimes = [4.8, 5];
   endTime = 101;
   stepCount = 8;
 
@@ -74,15 +86,20 @@ export class AppComponent {
   skillTimeRanges: SkillTimeRange[] = [];
   combinations: Result[] = [];
 
+  @ViewChildren(CdkVirtualScrollViewport)
+  private viewports: QueryList<CdkVirtualScrollViewport>;
+
   constructor() {
     this.cds = [];
 
-    for (var i = this.minCD; i <= this.maxCD; i += this.unit) {
+    for (let i = this.minCD; i <= this.maxCD; i += this.unit) {
       this.cds.push(i);
     }
 
     this.init();
   }
+
+  public ngAfterViewInit(): void {}
 
   public clear() {
     this.form.combination = '';
@@ -90,24 +107,40 @@ export class AppComponent {
   }
 
   public enter() {
-    var combination = this.getNumberCombination();
-    this.form.combination = combination.join(' ');
+    this.doSearch();
   }
 
   public stationChange() {
-    for (var station of this.stations) {
+    for (let station of this.stations) {
       station.end = station.start + 15;
     }
-    this.init();
+    this.reinit();
+  }
+
+  animationDone() {
+    this.viewports.forEach((viewport) => viewport.checkViewportSize());
   }
 
   public search() {
-    var combination = this.getNumberCombination();
-    this.result = [];
-    var entries = Object.entries(combination);
-    for (var record of this.combinations) {
-      var count = 0;
-      var matchSource = [];
+    this.doSearch();
+    this.selected.setValue(1);
+  }
+
+  @Delay(1000)
+  public reinit() {
+    this.init();
+  }
+
+  private doSearch() {
+    let combination = this.getNumberCombination();
+    this.form.combination = combination.join(' ');
+
+    let array = (this.result = []);
+    if (combination.length == 0) return;
+    let entries = Object.entries(combination);
+    for (let record of this.combinations) {
+      let count = 0;
+      let matchSource = [];
       for (let c of record.combination) {
         matchSource.push(c.cd);
       }
@@ -122,19 +155,18 @@ export class AppComponent {
         }
       }
       if (count == entries.length) {
-        this.result.push(record);
+        array.push(record);
       }
     }
-    this.selected.setValue(1);
   }
 
   /**
    * 取得數字組合陣列
    */
   public getNumberCombination() {
-    var ss = this.form.combination.split(/\s+/);
-    var combination: number[] = [];
-    for (var v of ss) {
+    let ss = this.form.combination.split(/\s+/);
+    let combination: number[] = [];
+    for (let v of ss) {
       if (v == '' || isNaN(<any>v)) continue;
       combination.push(Number(v));
     }
@@ -142,32 +174,33 @@ export class AppComponent {
     return combination;
   }
 
-  init() {
-    this.startTime = Number(this.startTime);
+  private init() {
     this.result = [];
 
     let array = (this.skillTimeRanges = []);
 
-    for (var r of this.cds) {
-      var data: SkillTimeRange = { cd: r, times: [] };
-      array.push(data);
-      var rcd = (this.cd * (100 - r)) / 100;
-      rcd = Math.round(rcd * 100) / 100;
-      var t = this.startTime;
-      while (t < this.endTime) {
-        data.times.push({
-          start: t,
-          end: Math.min(t + this.keep, this.endTime),
-        });
-        t += rcd;
+    for (let startTime of this.startTimes) {
+      for (let r of this.cds) {
+        let data: SkillTimeRange = { cd: r, startTime: startTime, times: [] };
+        array.push(data);
+        let rcd = (this.cd * (100 - r)) / 100;
+        rcd = Math.round(rcd * 100) / 100;
+        let t = startTime;
+        while (t < this.endTime) {
+          data.times.push({
+            start: t,
+            end: Math.min(t + this.keep, this.endTime),
+          });
+          t += rcd;
+        }
       }
     }
+    array.sort((a, b) => (a.cd > b.cd ? 1 : a.cd == b.cd ? 0 : -1));
 
-    var combinations = this.getCombinationsWithRepetition<SkillTimeRange>(
+    let combinations = this.calculateCombinations<SkillTimeRange>(
       this.skillTimeRanges,
       5
     );
-
     this.combinations = this.calculateTimes(combinations);
   }
 
@@ -175,11 +208,11 @@ export class AppComponent {
    * 初始化 Chart
    */
   initChart(chart: HTMLDivElement, record: Result) {
-    if (!record.chart) {
-      var canvas = document.createElement('canvas');
+    if (!chart.querySelector('canvas')) {
+      let canvas = document.createElement('canvas');
       chart.appendChild(canvas);
-      var data = this.toChartData(record);
-      record.chart = new Chart<'bar'>(canvas, {
+      let data = this.toChartData(record);
+      new Chart<'bar'>(canvas, {
         type: 'bar',
         data: data,
         options: {
@@ -231,12 +264,12 @@ export class AppComponent {
    * 轉換為 Chart Data
    */
   toChartData(record: Result) {
-    var labels = [`站點時間`];
-    var datasets: any[] = [];
+    let labels = [`站點時間`];
+    let datasets: any[] = [];
 
-    for (var i = 0; i < this.stepCount; i++) {
-      var t = this.stations[i];
-      var data = [t ? [t.start, t.end] : [0, 0]];
+    for (let i = 0; i < this.stepCount; i++) {
+      let t = this.stations[i];
+      let data = [t ? [t.start, t.end] : [0, 0]];
       datasets.push({
         label: '',
         data: data,
@@ -264,9 +297,9 @@ export class AppComponent {
     }
 
     labels.push(`有效時間`);
-    for (var i = 0; i < this.stepCount; i++) {
-      var dataset = datasets[i];
-      var t = record.effects[i];
+    for (let i = 0; i < this.stepCount; i++) {
+      let dataset = datasets[i];
+      let t = record.effects[i];
       if (t) {
         dataset.data.push([t.start, t.end]);
       } else {
@@ -276,9 +309,9 @@ export class AppComponent {
 
     for (let v of record.combination) {
       labels.push(`${v.cd < 10 ? '  ' : ''}-${v.cd}%`);
-      for (var i = 0; i < this.stepCount; i++) {
-        var dataset = datasets[i];
-        var t = v.times[i];
+      for (let i = 0; i < this.stepCount; i++) {
+        let dataset = datasets[i];
+        let t = v.times[i];
         if (t) {
           dataset.data.push([t.start, t.end]);
         } else {
@@ -297,14 +330,14 @@ export class AppComponent {
    * 計算所有組合的時間
    */
   public calculateTimes(combinations: SkillTimeRange[][]) {
-    var result: Result[] = [];
+    let result: Result[] = [];
 
-    for (var combination of combinations) {
-      var timeRanges = [];
+    for (let combination of combinations) {
+      let timeRanges = [];
       for (let cd of combination) {
         for (let range of cd.times) {
-          var merge = false;
-          for (var t of timeRanges) {
+          let merge = false;
+          for (let t of timeRanges) {
             if (range.start > t.end || range.end < t.start) continue;
             t.start = Math.min(range.start, t.start);
             t.end = Math.max(range.end, t.end);
@@ -319,13 +352,13 @@ export class AppComponent {
       timeRanges.sort((a, b) =>
         a.start > b.start ? 1 : a.start == b.start ? 0 : -1
       );
-      var totalTime = 0;
-      var effects = [];
+      let totalTime = 0;
+      let effects = [];
       for (let range of timeRanges) {
-        var start = range.start;
-        var end = range.end;
-        var second = end - start;
-        var conflictStation = undefined;
+        let start = range.start;
+        let end = range.end;
+        let second = end - start;
+        let conflictStation = undefined;
         for (let station of this.stations) {
           if (station.start > end || station.end < start) continue;
           conflictStation = station;
@@ -345,11 +378,11 @@ export class AppComponent {
       }
 
       totalTime = Math.round(totalTime * 100) / 100;
-      var id = '';
-      for (var a of combination) {
-        id += a.cd + ' ';
+      let id = '';
+      for (let a of combination) {
+        id += `${a.cd}(${a.startTime}) `;
       }
-      var d = {
+      let d = {
         id: id,
         combination: [...combination],
         timeRanges: [...timeRanges],
@@ -368,7 +401,7 @@ export class AppComponent {
    * 產稱所有排列組合
    * N 取 C 可重複
    */
-  public getCombinationsWithRepetition<T>(array: any[], count: number): T[][] {
+  public calculateCombinations<T>(array: any[], count: number): T[][] {
     function combine(temp: any[], start: number) {
       if (temp.length === count) {
         result.push(JSON.parse(JSON.stringify(temp)));
@@ -381,7 +414,7 @@ export class AppComponent {
       }
     }
 
-    var result: T[][] = [];
+    let result: T[][] = [];
     combine([], 0);
     return result;
   }
@@ -391,8 +424,8 @@ export class AppComponent {
    */
   public toTime(v) {
     v = Number(v);
-    var m = Math.floor(v / 60);
-    var s = (v * 100 - m * 60 * 100) / 100;
+    let m = Math.floor(v / 60);
+    let s = (v * 100 - m * 60 * 100) / 100;
     if (m > 0) {
       if (s < 10) {
         return `${m}:0${s}`;
