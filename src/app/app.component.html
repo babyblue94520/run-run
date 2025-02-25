@@ -14,6 +14,15 @@
             (ngModelChange)="reinit()"
           />
         </mat-form-field>
+        <mat-form-field>
+          <mat-label>第一次風圈時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="startTime"
+            (ngModelChange)="reinit()"
+          />
+        </mat-form-field>
         <br />
         <mat-form-field>
           <mat-label>第一站時間(S)</mat-label>

@@ -67,6 +67,7 @@ export class AppComponent implements AfterViewInit {
   minCD = 0;
   maxCD = 35;
   keep = 5;
+  startTime = 4.8;
   startTimes = [4.8, 5];
   endTime = 101;
   stepCount = 8;
@@ -179,21 +180,22 @@ export class AppComponent implements AfterViewInit {
 
     let array = (this.skillTimeRanges = []);
 
-    for (let startTime of this.startTimes) {
-      for (let r of this.cds) {
-        let data: SkillTimeRange = { cd: r, startTime: startTime, times: [] };
-        array.push(data);
-        let rcd = (this.cd * (100 - r)) / 100;
-        rcd = Math.round(rcd * 100) / 100;
-        let t = startTime;
-        while (t < this.endTime) {
-          data.times.push({
-            start: t,
-            end: Math.min(t + this.keep, this.endTime),
-          });
-          t += rcd;
-        }
+    // for (let startTime of this.startTimes) {
+    let startTime = this.startTime;
+    for (let r of this.cds) {
+      let data: SkillTimeRange = { cd: r, startTime: startTime, times: [] };
+      array.push(data);
+      let rcd = (this.cd * (100 - r)) / 100;
+      rcd = Math.round(rcd * 100) / 100;
+      let t = startTime;
+      while (t < this.endTime) {
+        data.times.push({
+          start: t,
+          end: Math.min(t + this.keep, this.endTime),
+        });
+        t += rcd;
       }
+      // }
     }
     array.sort((a, b) => (a.cd > b.cd ? 1 : a.cd == b.cd ? 0 : -1));
 
@@ -380,7 +382,8 @@ export class AppComponent implements AfterViewInit {
       totalTime = Math.round(totalTime * 100) / 100;
       let id = '';
       for (let a of combination) {
-        id += `${a.cd}(${a.startTime}) `;
+        // id += `${a.cd}(${a.startTime}) `;
+        id += `${a.cd} `;
       }
       let d = {
         id: id,
