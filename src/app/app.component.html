@@ -1,0 +1,154 @@
+<div class="app-container">
+  <div class="app-header">
+    <mat-accordion multi>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title> 設定 </mat-panel-title>
+        </mat-expansion-panel-header>
+        <mat-form-field>
+          <mat-label>風圈持續時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="keep"
+            (ngModelChange)="reinit()"
+          />
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>第一次風圈時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="startTime"
+            (ngModelChange)="reinit()"
+          />
+        </mat-form-field>
+        <br />
+        <mat-form-field>
+          <mat-label>第一站時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="stations[0].start"
+            (ngModelChange)="stationChange()"
+          />
+          <mat-hint align="start">{{ toTime(stations[0].start) }} </mat-hint>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>第二站時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="stations[1].start"
+            (ngModelChange)="stationChange()"
+          />
+          <mat-hint align="start">{{ toTime(stations[1].start) }} </mat-hint>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>第三站時間(S)</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="endTime"
+            (ngModelChange)="reinit()"
+          />
+          <mat-hint align="start">{{ toTime(endTime) }} </mat-hint>
+        </mat-form-field>
+      </mat-expansion-panel>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title> 查詢條件 </mat-panel-title>
+          <mat-panel-description> </mat-panel-description>
+        </mat-expansion-panel-header>
+        <mat-form-field>
+          <mat-label>組合</mat-label>
+          <input
+            matInput
+            type="text"
+            [(ngModel)]="form.combination"
+            (keyup.enter)="search()"
+            [placeholder]="'Ex. 0 10 20 30 35'"
+          />
+          <mat-hint align="start"
+            ><strong>輸入冷卻時間的組合</strong>
+          </mat-hint>
+          @if (form.combination) {
+          <button
+            matSuffix
+            mat-icon-button
+            aria-label="Clear"
+            (click)="clear()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          }
+        </mat-form-field>
+        <button mat-raised-button (click)="search()">查詢</button>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+  <div class="app-content">
+    <mat-tab-group
+      mat-stretch-tabs="false"
+      mat-align-tabs="start"
+      [selectedIndex]="selected.value"
+      (selectedIndexChange)="selected.setValue($event)"
+      (animationDone)="animationDone()"
+    >
+      <mat-tab label="全部({{ this.combinations.length }})">
+        <mat-accordion multi>
+          <cdk-virtual-scroll-viewport class="viewport" itemSize="50">
+            <mat-expansion-panel
+              *cdkVirtualFor="let record of combinations; templateCacheSize: 0"
+            >
+              <mat-expansion-panel-header class="panel-header">
+                <mat-panel-title>
+                  風圈時間：{{ record.totalTime }}s</mat-panel-title
+                >
+                <mat-panel-description class="panel-description">
+                  <div>組合：{{ record.id }}</div>
+                  <div>詳細</div>
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              <ng-template matExpansionPanelContent>
+                <div
+                  class="chart"
+                  #chart
+                  [attr.init]="initChart(chart, record)"
+                ></div>
+              </ng-template>
+            </mat-expansion-panel>
+          </cdk-virtual-scroll-viewport>
+        </mat-accordion>
+      </mat-tab>
+      <mat-tab label="查詢結果({{ this.result.length }})">
+        @if (result.length==0) { 沒有符合組合 } @else {
+        <mat-accordion multi>
+          <cdk-virtual-scroll-viewport class="viewport" itemSize="50">
+            <mat-expansion-panel
+              *cdkVirtualFor="let record of result; templateCacheSize: 0"
+            >
+              <mat-expansion-panel-header class="panel-header">
+                <mat-panel-title>
+                  風圈時間：{{ record.totalTime }}s</mat-panel-title
+                >
+                <mat-panel-description class="panel-description">
+                  <div>組合：{{ record.id }}</div>
+                  <div>詳細</div>
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              <ng-template matExpansionPanelContent>
+                <div
+                  class="chart"
+                  #chart
+                  [attr.init]="initChart(chart, record)"
+                ></div>
+              </ng-template>
+            </mat-expansion-panel>
+          </cdk-virtual-scroll-viewport>
+        </mat-accordion>
+        }
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
