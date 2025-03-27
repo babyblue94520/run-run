@@ -70,7 +70,7 @@ export class AppComponent implements AfterViewInit {
   startTime = 4.8;
   startTimes = [4.8, 5];
   endTime = 101;
-  stepCount = 8;
+  stepCount = 0;
 
   stations = [
     { start: 19, end: 34 },
@@ -100,7 +100,7 @@ export class AppComponent implements AfterViewInit {
     this.init();
   }
 
-  public ngAfterViewInit(): void {}
+  public ngAfterViewInit(): void { }
 
   public clear() {
     this.form.combination = '';
@@ -269,6 +269,7 @@ export class AppComponent implements AfterViewInit {
     let labels = [`站點時間`];
     let datasets: any[] = [];
 
+
     for (let i = 0; i < this.stepCount; i++) {
       let t = this.stations[i];
       let data = [t ? [t.start, t.end] : [0, 0]];
@@ -392,6 +393,9 @@ export class AppComponent implements AfterViewInit {
         totalTime,
         effects,
       };
+      if (d.timeRanges.length > this.stepCount) {
+        this.stepCount = d.timeRanges.length;
+      }
       result.push(d);
     }
     result.sort((a, b) =>
