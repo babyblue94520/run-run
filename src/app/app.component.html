@@ -6,6 +6,15 @@
           <mat-panel-title> 設定 </mat-panel-title>
         </mat-expansion-panel-header>
         <mat-form-field>
+          <mat-label>人數</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="memberCount"
+            (ngModelChange)="reinit()"
+          />
+        </mat-form-field>
+        <mat-form-field>
           <mat-label>風圈持續時間(S)</mat-label>
           <input
             matInput
@@ -49,10 +58,10 @@
           <input
             matInput
             type="number"
-            [(ngModel)]="endTime"
-            (ngModelChange)="reinit()"
+            [(ngModel)]="stations[2].start"
+            (ngModelChange)="stationChange()"
           />
-          <mat-hint align="start">{{ toTime(endTime) }} </mat-hint>
+          <mat-hint align="start">{{ toTime(stations[2].start) }} </mat-hint>
         </mat-form-field>
       </mat-expansion-panel>
       <mat-expansion-panel>
