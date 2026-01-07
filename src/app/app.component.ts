@@ -31,6 +31,8 @@ interface Result {
   timeRanges: Range[];
   totalTime: number;
   effects?: Range[];
+  stations?: Range[]; // 新增：動態站點時間
+  dynamicEndTime?: number; // 新增：動態結束時間
   chart?: Chart;
 }
 
@@ -62,6 +64,7 @@ interface SkillTimeRange {
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements AfterViewInit {
+  memberCount=4;
   unit = 5;
   cd = 30;
   minCD = 0;
@@ -69,13 +72,21 @@ export class AppComponent implements AfterViewInit {
   keep = 5;
   startTime = 4.8;
   startTimes = [4.8, 5];
-  endTime = 101;
+  endTime = 110;
   stepCount = 0;
+  
+  baseSpeed = 1; // 基礎移動速度（單位/秒）
+  stationStayDuration = 15; // 站點停留時間（秒）
 
+  // 原始站點時間（基於無加速的情況）
   stations = [
-    { start: 19, end: 34 },
-    { start: 61, end: 76 },
+    { start: 20, end: 0 },
+    { start: 65, end: 0 },
+    { start: 110, end: 0 }, // 第三站（原 EndTime）
   ];
+  
+  // 站點距離（基於原始到站時間計算）
+  stationDistances: number[] = [];
 
   selected = new FormControl(0);
 
@@ -96,6 +107,14 @@ export class AppComponent implements AfterViewInit {
     for (let i = this.minCD; i <= this.maxCD; i += this.unit) {
       this.cds.push(i);
     }
+    
+    // 初始化站點距離（基於原始到站時間計算）
+    // 注意：start 是時間軸上的時間，包含之前的站點停留時間
+    // 因此計算距離時，需要扣除之前的停留時間
+    this.stationDistances = this.stations.map((station, index) => {
+      let movingTime = station.start - (index * this.stationStayDuration);
+      return movingTime * this.baseSpeed;
+    });
 
     this.init();
   }
@@ -115,6 +134,11 @@ export class AppComponent implements AfterViewInit {
     for (let station of this.stations) {
       station.end = station.start + 15;
     }
+    this.stationDistances = this.stations.map((station, index) => {
+      let movingTime = station.start - (index * this.stationStayDuration);
+      return movingTime * this.baseSpeed;
+    });
+
     this.reinit();
   }
 
@@ -201,9 +225,179 @@ export class AppComponent implements AfterViewInit {
 
     let combinations = this.calculateCombinations<SkillTimeRange>(
       this.skillTimeRanges,
-      5
+      this.memberCount
     );
-    this.combinations = this.calculateTimes(combinations);
+    this.combinations = this.calculateTimesWithDynamicRate(combinations);
+  }
+
+  private calculateTimesWithDynamicRate(combinations: SkillTimeRange[][]) {
+    let result: Result[] = [];
+
+    for (let combination of combinations) {
+      // 使用原始的技能時間（固定CD，不受加速影響）
+      let timeRanges = [];
+      for (let cd of combination) {
+        for (let range of cd.times) {
+          let merge = false;
+          for (let t of timeRanges) {
+            if (range.start > t.end || range.end < t.start) continue;
+            t.start = Math.min(range.start, t.start);
+            t.end = Math.max(range.end, t.end);
+            merge = true;
+            break;
+          }
+          if (!merge) {
+            timeRanges.push({ ...range });
+          }
+        }
+      }
+      
+      timeRanges.sort((a, b) =>
+        a.start > b.start ? 1 : a.start == b.start ? 0 : -1
+      );
+
+      // 計算動態站點時間
+      let dynamicStations: Range[] = [];
+      let currentPos = 0;
+      let currentTime = 0;
+      let stationIdx = 0;
+      const SPEED_BOOST = 1.1; // 10% 加速
+
+      // 將時間軸切分為有加速和無加速的段落
+      // timeRanges 已經是合併過的技能生效區間（有加速）
+      
+      // 我們需要一個事件隊列：技能開始、技能結束、站點到達（這個是動態的，不能預先加入）
+      // 簡單點：模擬每一段 skill range
+      
+      let lastTime = 0;
+      
+      // 處理直到所有站點都到達，並且到達終點
+      let dynamicEndTime = this.endTime;
+      
+      // 模擬移動直到所有站點都到達
+      while (stationIdx < this.stationDistances.length) {
+        let targetDist = this.stationDistances[stationIdx];
+        let distNeeded = targetDist - currentPos;
+        
+        // 找當前時間點之後的第一個技能區間
+        let activeRange = timeRanges.find(r => r.end > currentTime);
+        
+        let speed = 1;
+        let timeToNextEvent = Infinity; // 下一個速度變化點
+        
+        if (activeRange && activeRange.start <= currentTime) {
+          // 當前在技能區間內
+          speed = SPEED_BOOST;
+          timeToNextEvent = activeRange.end - currentTime;
+        } else if (activeRange) {
+          // 當前不在技能區間，但後面還有
+          speed = 1;
+          timeToNextEvent = activeRange.start - currentTime;
+        } else {
+          // 後面沒有技能了
+          speed = 1;
+          timeToNextEvent = Infinity;
+        }
+        
+        // 計算以當前速度移動到下一個事件或到達站點需要的時間
+        let timeToStation = distNeeded / speed;
+        
+        if (timeToStation <= timeToNextEvent) {
+          // 在速度改變前到達站點
+          currentTime += timeToStation;
+          currentPos = targetDist; // 應該等於 this.stationDistances[stationIdx]
+          
+          let arrivalTime = Math.round(currentTime * 100) / 100;
+          let departTime = 0;
+          
+          // 如果是最後一個站點（終點），不需要停留時間，或者根據需求處理
+          // 邏輯上 third station 是原先的 endTime (110)，可能不需要 stayDuration??
+          // 但原本 logic 是 endTime (110) 包含了停留時間。
+          // 這裡我們假設最後一站也是一個普通站點，有到達和離開時間
+          // 用戶需求：把 endTime 修改進 stations 作為第三戰
+          
+          departTime = Math.round((currentTime + this.stationStayDuration) * 100) / 100;
+          
+          dynamicStations.push({
+            start: arrivalTime,
+            end: departTime
+          });
+          
+          // 在站點停留
+          currentTime = departTime;
+          stationIdx++;
+        } else {
+          // 在到達站點前速度發生變化（技能開始或結束）
+          currentTime += timeToNextEvent;
+          currentPos += timeToNextEvent * speed;
+        }
+      }
+      
+      // 動態結束時間就是最後一個站點的結束時間
+      if (dynamicStations.length > 0) {
+        dynamicEndTime = dynamicStations[dynamicStations.length - 1].end;
+      }
+
+      let totalTime = 0;
+      let effects = [];
+      for (let range of timeRanges) {
+        // 如果技能開始時間已經超過動態結束時間，則不計入
+        if (range.start >= dynamicEndTime) continue;
+
+        let start = range.start;
+        // 技能結束時間被 dynamicEndTime 截斷
+        let end = Math.min(range.end, dynamicEndTime);
+        
+        let second = end - start;
+        let conflictStation = undefined;
+        // 使用動態計算的站點時間
+        for (let station of dynamicStations) {
+          if (station.start > end || station.end < start) continue;
+          conflictStation = station;
+          second -= Math.min(station.end, end) - Math.max(station.start, start);
+        }
+        totalTime += second;
+        if (conflictStation) {
+          if (conflictStation.end < end) {
+            effects.push({ start: conflictStation.end, end: end });
+          }
+          if (conflictStation.start > start) {
+            effects.push({ start: start, end: conflictStation.start });
+          }
+        } else {
+          // 這裡也要確保不加入無效的 range
+          if (start < end) {
+             effects.push({start, end});
+          }
+        }
+      }
+
+      totalTime = Math.round(totalTime * 100) / 100;
+      let id = '';
+      for (let a of combination) {
+        id += `${a.cd} `;
+      }
+      let d = {
+        id: id,
+        combination: [...combination],
+        timeRanges: [...timeRanges],
+        totalTime,
+        effects,
+        stations: dynamicStations, // 儲存動態站點時間
+        dynamicEndTime: dynamicEndTime, // 儲存動態結束時間
+      };
+      
+      let maxLen = Math.max(d.stations.length, d.timeRanges.length, d.effects.length);
+      if (maxLen > this.stepCount) {
+        this.stepCount = maxLen;
+      }
+      result.push(d);
+    }
+    
+    result.sort((a, b) =>
+      a.totalTime > b.totalTime ? -1 : a.totalTime == b.totalTime ? 0 : 1
+    );
+    return result;
   }
 
   /**
@@ -271,7 +465,7 @@ export class AppComponent implements AfterViewInit {
 
 
     for (let i = 0; i < this.stepCount; i++) {
-      let t = this.stations[i];
+      let t = record.stations ? record.stations[i] : this.stations[i];
       let data = [t ? [t.start, t.end] : [0, 0]];
       datasets.push({
         label: '',
